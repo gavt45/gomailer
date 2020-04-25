@@ -1,0 +1,9 @@
+{
+  "port":443,
+  "server_cert": "server.crt",
+  "server_key": "server.key",
+  "secret": "secret",
+  "email":"example@gmail.com",
+  "smtp_addr":"smtp.gmail.com",
+  "password":"supersecretpassword"
+}

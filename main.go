@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/flosch/pongo2"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 	"io/ioutil"
@@ -14,6 +14,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -47,6 +48,10 @@ var Tasks = struct{
 	m map[string]TaskResult
 }{m: make(map[string]TaskResult)}
 
+var templateGen = TemplateEng{
+	m: make(map[string]*pongo2.Template),
+}
+
 type response struct {
 	Code	int		`json:"code"`
 	Error	string	`json:"error"`
@@ -57,6 +62,7 @@ type response struct {
 type badAuth struct {
 	Secret string
 }
+
 func (b *badAuth) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	username := r.URL.Query().Get("secret")
 	if username != b.Secret && !unRestrictedPaths[r.URL.Path] {
@@ -80,7 +86,9 @@ func sendMail(w http.ResponseWriter, r *http.Request) {
 	var mailRe = regexp.MustCompile(`(?:[a-z0-9!#$%&'*+/=?^_{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])`)
 	to := r.URL.Query().Get("to")
 	subject := r.URL.Query().Get("subject")
-	body := r.URL.Query().Get("body")
+	template_name := r.URL.Query().Get("template_name")
+	field_mames := r.URL.Query().Get("field_names")
+
 
 	resp := response{
 		Code:    0,
@@ -89,7 +97,7 @@ func sendMail(w http.ResponseWriter, r *http.Request) {
 		Uid: "",
 	}
 
-	if to == "" || subject == "" || body == "" {
+	if to == "" || subject == "" || template_name == "" || field_mames == "" {
 		resp.Code = 1
 		resp.Error = "You should pass to, subject and body parameters!"
 		resp.Message = resp.Error
@@ -109,7 +117,23 @@ func sendMail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	var args_map = make(map[string]string)
+
+	for _, field_name := range strings.Split(field_mames, ",") {
+		tmp := r.URL.Query().Get(field_name)
+		if tmp == "" {
+			resp.Code = 1
+			resp.Error = "Field is in fields, but not in query!"
+			resp.Message = resp.Error
+			respBytes,err := json.Marshal(resp)
+			checkErr(err)
+			fmt.Fprintf(w, string(respBytes))
+			return
+		}
+		args_map[field_name] = tmp
+	}
+
+	bodyBytes, err := templateGen.execTemplate(template_name, args_map)
 
 	if err != nil {
 		resp.Code = 1
@@ -211,28 +235,31 @@ func main(){
 		log.Fatal("Usage: ",os.Args[0]," <command start/cfg> <config file.json>")
 	}
 	switch os.Args[1] { // command
-	case "cfg":
-		confStr, err := json.Marshal(config)
-		checkErr(err)
-		err = ioutil.WriteFile(os.Args[2], confStr, 0644)
-		checkErr(err)
-	case "start":
-		configFileContent, err := ioutil.ReadFile(os.Args[2])
-		checkErr(err)
-		err = json.Unmarshal(configFileContent, config)
-		checkErr(err)
+		case "cfg":
+			confStr, err := json.Marshal(config)
+			checkErr(err)
+			err = ioutil.WriteFile(os.Args[2], confStr, 0644)
+			checkErr(err)
+		case "start":
+			configFileContent, err := ioutil.ReadFile(os.Args[2])
+			checkErr(err)
+			err = json.Unmarshal(configFileContent, config)
+			checkErr(err)
 
-		r := mux.NewRouter()
-		setupEndpoints(r)
-		n := negroni.Classic()
-		n.Use(&badAuth{
-			Secret: config.Secret,
-		})
-		n.UseHandler(r)
-		log.Println("Starting server on port ",config.Port,"...")
-		err = http.ListenAndServeTLS(":"+strconv.Itoa(config.Port), config.ServerCert, config.ServerKey, n)
-		checkErr(err)
-	default:
-		log.Fatal("No such command: ",os.Args[1])
+			templateGen.loadTemplates(config.TemplatePath)
+
+			r := mux.NewRouter()
+			setupEndpoints(r)
+			n := negroni.Classic()
+			n.Use(&badAuth{
+				Secret: config.Secret,
+			})
+			n.UseHandler(r)
+			log.Println("Starting server on port ",config.Port,"...")
+			err = http.ListenAndServe(":"+strconv.Itoa(config.Port), n)
+			//err = http.ListenAndServeTLS(":"+strconv.Itoa(config.Port), config.ServerCert, config.ServerKey, n)
+			checkErr(err)
+		default:
+			log.Fatal("No such command: ",os.Args[1])
 	}
 }

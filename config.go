@@ -8,4 +8,5 @@ type Config struct {
 	Email		string	`json:"email"`
 	SmtpAddr	string	`json:"smtp_addr"`
 	Password	string	`json:"password"`
+	TemplatePath string `json:"template_path"`
 }

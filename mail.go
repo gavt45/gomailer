@@ -5,7 +5,7 @@ import (
 	"net/smtp"
 )
 
-func Send(to string, subject string, body []byte, uid string, config *Config) {
+func Send(to string, subject string, body string, uid string, config *Config) {
 	from := config.Email
 	pass := config.Password
 
@@ -31,7 +31,7 @@ func Send(to string, subject string, body []byte, uid string, config *Config) {
 		Tasks.Unlock()
 		return
 	}
-	log.Println("Send mail to",to,"with subject",subject,"successful")
+	log.Println("Send mail to",to,"with subject",subject,"successful",uid)
 	var res = TaskResult{
 		Code:    0,
 		Message: "OK",

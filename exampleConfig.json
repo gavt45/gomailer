@@ -4,6 +4,7 @@
   "server_key": "server.key",
   "secret": "secret",
   "email":"example@gmail.com",
-  "smtp_addr":"smtp.gmail.com",
-  "password":"supersecretpassword"
+  "smtp_addr":"localhost",
+  "password":"supersecretpassword",
+  "template_path":"templates/"
 }

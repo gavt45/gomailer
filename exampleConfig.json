@@ -3,8 +3,8 @@
   "server_cert": "server.crt",
   "server_key": "server.key",
   "secret": "secret",
-  "email":"example@gmail.com",
-  "smtp_addr":"localhost",
-  "password":"supersecretpassword",
+  "email":"gavt451@gmail.com",
+  "smtp_addr":"smtp.gmail.com",
+  "password":"W3Iwfoj1keBG",
   "template_path":"templates/"
 }

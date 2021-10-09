@@ -4,7 +4,7 @@ This service is made for sending email via REST api
 ##### Docker:
 1. Build the container: `docker build -t dslmailer .`
 2. Put config into `cfg` folder and rename it to cfg.json or just change the name in docker file
-3. Run it: `docker run -p 443:443 -v $(pwd)/cfg:/cfg --name dslmailer --rm dslmailer:latest`
+3. Run it: `docker run -p 443:443 -e SMTP_ADDR=smtp.gmail.com -e SMTP_PASSWORD=1234 -e EMAIL=a@a.a -e PORT=8080 -e SECRET=secret -e TEMPLATE_PATH=templates --name dslmailer --rm dslmailer:latest`
 ##### Linux/osx:
 1. Make all in one time: `make all` -- this pull deps, create certificates and build sources
 

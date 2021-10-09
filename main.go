@@ -18,13 +18,13 @@ import (
 	"sync"
 )
 
-func checkErr(error error){
+func checkErr(error error) {
 	if error != nil {
-		log.Fatal("Error: ",error)
+		log.Fatal("Error: ", error)
 	}
 }
 
-func genUid() (string){
+func genUid() string {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
 	checkErr(err)
@@ -32,9 +32,9 @@ func genUid() (string){
 }
 
 var unRestrictedPaths = map[string]bool{
-	"/status":false,// == restricted path
-	"/send":false,	// == restricted path
-	"/":true,		// == un restricted path
+	"/status": false, // == restricted path
+	"/send":   false, // == restricted path
+	"/":       true,  // == un restricted path
 }
 
 type TaskResult struct {
@@ -43,7 +43,7 @@ type TaskResult struct {
 	Message string `json:"message"`
 }
 
-var Tasks = struct{
+var Tasks = struct {
 	sync.RWMutex
 	m map[string]TaskResult
 }{m: make(map[string]TaskResult)}
@@ -53,10 +53,10 @@ var templateGen = TemplateEng{
 }
 
 type response struct {
-	Code	int		`json:"code"`
-	Error	string	`json:"error"`
-	Message	string	`json:"message"`
-	Uid		string	`json:"uid"`
+	Code    int    `json:"code"`
+	Error   string `json:"error"`
+	Message string `json:"message"`
+	Uid     string `json:"uid"`
 }
 
 type badAuth struct {
@@ -70,9 +70,9 @@ func (b *badAuth) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.Ha
 			Code:    1,
 			Error:   "Unauthorized",
 			Message: "Unauthorized",
-			Uid: "",
+			Uid:     "",
 		}
-		respBytes,err := json.Marshal(resp)
+		respBytes, err := json.Marshal(resp)
 		checkErr(err)
 		http.Error(w, string(respBytes), 401)
 		return
@@ -84,34 +84,34 @@ func (b *badAuth) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.Ha
 
 func sendMail(w http.ResponseWriter, r *http.Request) {
 	var mailRe = regexp.MustCompile(`(?:[a-z0-9!#$%&'*+/=?^_{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])`)
+	var template_regexp = regexp.MustCompile(`^[a-z0-9]+$`)
 	to := r.URL.Query().Get("to")
 	subject := r.URL.Query().Get("subject")
 	template_name := r.URL.Query().Get("template_name")
 	field_mames := r.URL.Query().Get("field_names")
 
-
 	resp := response{
 		Code:    0,
 		Error:   "",
 		Message: "OK",
-		Uid: "",
+		Uid:     "",
 	}
 
 	if to == "" || subject == "" || template_name == "" || field_mames == "" {
 		resp.Code = 1
 		resp.Error = "You should pass to, subject and body parameters!"
 		resp.Message = resp.Error
-		respBytes,err := json.Marshal(resp)
+		respBytes, err := json.Marshal(resp)
 		checkErr(err)
 		fmt.Fprintf(w, string(respBytes))
 		return
 	}
 
-	if !mailRe.Match([]byte(to)){
+	if !mailRe.MatchString(to) || !template_regexp.MatchString(template_name) {
 		resp.Code = 1
-		resp.Error = "email not matches RFC regex!"
+		resp.Error = "email not matches RFC regex or template name is strange!"
 		resp.Message = resp.Error
-		respBytes,err := json.Marshal(resp)
+		respBytes, err := json.Marshal(resp)
 		checkErr(err)
 		fmt.Fprintf(w, string(respBytes))
 		return
@@ -125,7 +125,7 @@ func sendMail(w http.ResponseWriter, r *http.Request) {
 			resp.Code = 1
 			resp.Error = "Field is in fields, but not in query!"
 			resp.Message = resp.Error
-			respBytes,err := json.Marshal(resp)
+			respBytes, err := json.Marshal(resp)
 			checkErr(err)
 			fmt.Fprintf(w, string(respBytes))
 			return
@@ -139,7 +139,7 @@ func sendMail(w http.ResponseWriter, r *http.Request) {
 		resp.Code = 1
 		resp.Error = "Body is not a valid base64!"
 		resp.Message = resp.Error
-		respBytes,err := json.Marshal(resp)
+		respBytes, err := json.Marshal(resp)
 		checkErr(err)
 		fmt.Fprintf(w, string(respBytes))
 		return
@@ -156,7 +156,7 @@ func sendMail(w http.ResponseWriter, r *http.Request) {
 	//	resp.Message = resp.Error
 	//}
 
-	respBytes,err := json.Marshal(resp)
+	respBytes, err := json.Marshal(resp)
 	checkErr(err)
 	fmt.Fprintf(w, string(respBytes))
 }
@@ -168,13 +168,13 @@ func status(w http.ResponseWriter, r *http.Request) {
 		Code:    0,
 		Error:   "",
 		Message: "OK",
-		Uid: uid,
+		Uid:     uid,
 	}
 	if uid == "" || len(uid) != 64 {
 		resp.Code = 1
 		resp.Error = "Invalid uid"
 		resp.Message = resp.Error
-		respBytes,err := json.Marshal(resp)
+		respBytes, err := json.Marshal(resp)
 		checkErr(err)
 		fmt.Fprintf(w, string(respBytes))
 		return
@@ -192,7 +192,7 @@ func status(w http.ResponseWriter, r *http.Request) {
 		resp.Code = 1
 		resp.Error = "Mail not yet sent or no such task"
 		resp.Message = resp.Error
-		respBytes,err := json.Marshal(resp)
+		respBytes, err := json.Marshal(resp)
 		checkErr(err)
 		fmt.Fprintf(w, string(respBytes))
 		return
@@ -204,7 +204,7 @@ func status(w http.ResponseWriter, r *http.Request) {
 		resp.Error = taskRes.Message
 	}
 
-	respBytes,err := json.Marshal(resp)
+	respBytes, err := json.Marshal(resp)
 	checkErr(err)
 	fmt.Fprintf(w, string(respBytes))
 }
@@ -216,50 +216,63 @@ func root(w http.ResponseWriter, r *http.Request) {
 		Error:   "",
 		Message: "OK",
 	}
-	respBytes,err := json.Marshal(resp)
+	respBytes, err := json.Marshal(resp)
 	checkErr(err)
 	fmt.Fprintf(w, string(respBytes))
 }
 
-func setupEndpoints(router *mux.Router){
+func setupEndpoints(router *mux.Router) {
 	router.HandleFunc("/status", status).Methods("GET")
 	router.HandleFunc("/send", sendMail).Methods("GET")
 	router.HandleFunc("/", root).Methods("GET")
 }
 
-
 var config = new(Config)
 
-func main(){
+func main() {
 	if len(os.Args) < 3 {
-		log.Fatal("Usage: ",os.Args[0]," <command start/cfg> <config file.json>")
+		log.Fatal("Usage: ", os.Args[0], " <command start/cfg> <config file.json>")
 	}
+
+	config.SmtpAddr = os.Getenv("SMTP_ADDR")
+	config.Password = os.Getenv("SMTP_PASSWORD")
+	config.Email = os.Getenv("EMAIL")
+	config.Port, _ = strconv.Atoi(os.Getenv("PORT"))
+	config.Secret = os.Getenv("SECRET")
+	config.ServerCert = ""
+	config.ServerKey = ""
+	config.TemplatePath = os.Getenv("TEMPLATE_PATH")
+
+	if config.Port == 0 || config.SmtpAddr == "" || config.Password == "" || config.Email == "" || config.Secret == "" || config.TemplatePath == "" {
+		panic("config is invalid!")
+	}
+
 	switch os.Args[1] { // command
-		case "cfg":
-			confStr, err := json.Marshal(config)
-			checkErr(err)
-			err = ioutil.WriteFile(os.Args[2], confStr, 0644)
-			checkErr(err)
-		case "start":
-			configFileContent, err := ioutil.ReadFile(os.Args[2])
-			checkErr(err)
-			err = json.Unmarshal(configFileContent, config)
-			checkErr(err)
+	case "cfg":
+		confStr, err := json.Marshal(config)
+		checkErr(err)
+		err = ioutil.WriteFile(os.Args[2], confStr, 0644)
+		checkErr(err)
+	case "start":
+		configFileContent, err := ioutil.ReadFile(os.Args[2])
+		checkErr(err)
+		err = json.Unmarshal(configFileContent, config)
+		checkErr(err)
 
-			templateGen.loadTemplates(config.TemplatePath)
+		templateGen.loadTemplates(config.TemplatePath)
 
-			r := mux.NewRouter()
-			setupEndpoints(r)
-			n := negroni.Classic()
-			n.Use(&badAuth{
-				Secret: config.Secret,
-			})
-			n.UseHandler(r)
-			log.Println("Starting server on port ",config.Port,"...")
-			err = http.ListenAndServe(":"+strconv.Itoa(config.Port), n)
-			//err = http.ListenAndServeTLS(":"+strconv.Itoa(config.Port), config.ServerCert, config.ServerKey, n)
-			checkErr(err)
-		default:
-			log.Fatal("No such command: ",os.Args[1])
+		r := mux.NewRouter()
+		setupEndpoints(r)
+		n := negroni.Classic()
+		n.Use(&badAuth{
+			Secret: config.Secret,
+		})
+		n.UseHandler(r)
+		log.Println("Starting server on port ", config.Port, "...")
+		err = http.ListenAndServe(":"+strconv.Itoa(config.Port), n)
+		//err = http.ListenAndServeTLS(":"+strconv.Itoa(config.Port), config.ServerCert, config.ServerKey, n)
+		checkErr(err)
+	default:
+		log.Fatal("No such command: ", os.Args[1])
 	}
 }

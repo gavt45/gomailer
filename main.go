@@ -8,7 +8,6 @@ import (
 	"github.com/flosch/pongo2"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -230,8 +229,8 @@ func setupEndpoints(router *mux.Router) {
 var config = new(Config)
 
 func main() {
-	if len(os.Args) < 3 {
-		log.Fatal("Usage: ", os.Args[0], " <command start/cfg> <config file.json>")
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: ", os.Args[0], " <command start/cfg>")
 	}
 
 	config.SmtpAddr = os.Getenv("SMTP_ADDR")
@@ -248,16 +247,16 @@ func main() {
 	}
 
 	switch os.Args[1] { // command
-	case "cfg":
-		confStr, err := json.Marshal(config)
-		checkErr(err)
-		err = ioutil.WriteFile(os.Args[2], confStr, 0644)
-		checkErr(err)
+	//case "cfg":
+	//	confStr, err := json.Marshal(config)
+	//	checkErr(err)
+	//	err = ioutil.WriteFile(os.Args[2], confStr, 0644)
+	//	checkErr(err)
 	case "start":
-		configFileContent, err := ioutil.ReadFile(os.Args[2])
-		checkErr(err)
-		err = json.Unmarshal(configFileContent, config)
-		checkErr(err)
+		//configFileContent, err := ioutil.ReadFile(os.Args[2])
+		//checkErr(err)
+		//err = json.Unmarshal(configFileContent, config)
+		//checkErr(err)
 
 		templateGen.loadTemplates(config.TemplatePath)
 
@@ -269,7 +268,7 @@ func main() {
 		})
 		n.UseHandler(r)
 		log.Println("Starting server on port ", config.Port, "...")
-		err = http.ListenAndServe(":"+strconv.Itoa(config.Port), n)
+		err := http.ListenAndServe(":"+strconv.Itoa(config.Port), n)
 		//err = http.ListenAndServeTLS(":"+strconv.Itoa(config.Port), config.ServerCert, config.ServerKey, n)
 		checkErr(err)
 	default:

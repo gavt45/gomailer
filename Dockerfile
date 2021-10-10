@@ -1,14 +1,25 @@
-FROM golang:1.14
+FROM golang:1.16
+
+ENV SMTP_ADDR=smtp.gmail.com
+ENV SMTP_PASSWORD=secret
+ENV EMAIL=test@gmail.com
+ENV PORT=80
+ENV SECRET=secret
+ENV TEMPLATE_PATH=/templates
+ENV GOBIN=/usr/local/bin/
+
 
 WORKDIR /go/src/dslmailer
 
-RUN go get -v github.com/gorilla/mux
-RUN go get -v github.com/urfave/negroni
+COPY go.mod .
 
-RUN mkdir /cfg
+RUN go mod download
+
+RUN mkdir /templates
 
 #COPY cfg.json /cfg/cfg.json
-COPY . .
+COPY *.go ./
+COPY Makefile ./
 
 RUN go get -d -v ./...
 RUN go install -v ./...
@@ -16,4 +27,4 @@ RUN go install -v ./...
 #RUN make deploy
 #RUN go build -o dslmailer .
 
-CMD ["/go/bin/dslmailer", "start", "/cfg/cfg.json"]
+CMD ["/usr/local/bin/gomailer", "start"]
